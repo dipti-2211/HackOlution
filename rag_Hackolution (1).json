@@ -1,0 +1,873 @@
+{
+  "name": "rag_Hackolution",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -48,
+        664
+      ],
+      "id": "e3f78969-2b1b-4d02-bc4d-d550d54e3f92",
+      "name": "Telegram Trigger",
+      "webhookId": "a9491449-c8a6-4152-85d1-1c0cde7ae8ce",
+      "credentials": {
+        "telegramApi": {
+          "id": "yc2W5xhHwPN3qyVu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an AI Urban Safety Agent.\n\nAnalyze the user's live GPS coordinates and determine the area's safety risk.\n\nINPUT:\n- Latitude: {{ $json.message.location.latitude }}\n- Longitude: {{ $json.message.location.longitude }}\n- Time: {{ $now }}\n\nTASKS:\n- Reverse geocode the location\n- Search nearby crime/RAG database for:\n  - theft\n  - robbery\n  - harassment\n  - unsafe roads\n  - nighttime crime\n  - recent incidents\n- Consider only nearby incidents:\n  - 2 km radius in dense urban areas\n  - 5 km radius in sparse areas\n- Increase risk during late-night or isolated conditions\n\nRISK LEVELS:\n- LOW → low crime activity\n- MEDIUM → moderate incidents or isolated at night\n- HIGH → repeated violent crime or hotspot activity\n\nRETURN ONLY VALID JSON IN THIS FORMAT:\n\n{\n  \"risk_level\": \"LOW | MEDIUM | HIGH\"\n}\n\nDO NOT RETURN ANYTHING ELSE.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        456,
+        256
+      ],
+      "id": "5be697c5-75fe-4caa-a5a7-14d3752ed75f",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        400,
+        480
+      ],
+      "id": "3755faf8-80f6-4ef3-9f35-71e23785affc",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Work with your pinecone DB",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "hackolution",
+          "mode": "list",
+          "cachedResultName": "hackolution"
+        },
+        "topK": 2,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        656,
+        480
+      ],
+      "id": "688d806c-dc50-4a64-bcf4-21c67621b24a",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "BCR4ZCoj9P6MdLtr",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        736,
+        688
+      ],
+      "id": "6473657d-c030-41cc-8b62-3afdbb23777f",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "M3P1Q9TYFMt2scne",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=⚠️⚠️⚠️ ALERT!!\nYou appear to be in a high-risk area.\nReply YES within 5 minutes if you are safe, otherwise an emergency SOS will be triggered.\n",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1608,
+        464
+      ],
+      "id": "d4ad6e7e-9305-4707-9a71-e988c8c1ba30",
+      "name": "Send a text message",
+      "webhookId": "bbebf324-6964-453a-b7ea-02c452eb2b2f",
+      "credentials": {
+        "telegramApi": {
+          "id": "yc2W5xhHwPN3qyVu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code Node\n\nconst raw = $json.output;\n\n// Remove markdown code blocks\nconst cleaned = raw\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\n// Parse JSON\nconst parsed = JSON.parse(cleaned);\n\n// Return only the risk level\nreturn [\n  {\n    json: {\n      risk_level: parsed.risk_level\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        464
+      ],
+      "id": "440cfbd2-d96f-4427-91b0-75060bd881d5",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "57a158b1-ff24-4574-b264-b7ca76c2a62f",
+              "leftValue": "={{ $json.risk_level }}",
+              "rightValue": "HIGH",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1248,
+        464
+      ],
+      "id": "ef40bace-75da-4fb6-a537-4dba46ae3aca",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.message.from }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        528,
+        480
+      ],
+      "id": "74486760-1426-4a27-b306-f2724b3dfad0",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "amount": 20
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1968,
+        464
+      ],
+      "id": "f20a417e-9b00-472b-9545-dd0d457c6590",
+      "name": "Wait",
+      "webhookId": "29585c2d-7165-409f-ab55-14178ca62612"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "fd3b6149-fada-4097-b115-e5e78913b36c",
+              "leftValue": "={{ $json.result[0].message.text }}",
+              "rightValue": "Yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2416,
+        464
+      ],
+      "id": "6c1ce3c9-ef87-4635-a64c-43fc051f6aae",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "url": "https://api.telegram.org/bot8608000445:AAHn7d70QkFZKVnZ3PBNpOV8YIAH3bdyp9o/getUpdates",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2192,
+        464
+      ],
+      "id": "b99f46bd-a931-4e80-8b54-053bedca42e2",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d5aa1118-2e45-4b5f-aaf1-ddaff432d1e8",
+              "leftValue": "={{ $json.message.location }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        176,
+        664
+      ],
+      "id": "1f520d22-8460-4682-9e68-c2602fecf891",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an AI Route Safety Assistant for Kolkata.\n\nYou receive:\n- source location\n- destination location\n- real-time structured data extracted from Apify\n\nThe Apify data may contain:\n- hospitals\n- police stations\n- risky zones\n- landmarks\n- emergency services\n- roads\n- locality information\n\nIMPORTANT:\nUse the Apify extracted data as the PRIMARY source of truth.\nDo NOT hardcode hospitals, police stations, or risky zones.\nOnly use generated knowledge if Apify data is unavailable.\n\nYour tasks:\n\n1. Generate the safest possible route between source and destination.\n2. Mention important roads and intermediate areas.\n3. Use hospitals and emergency locations directly from Apify data.\n4. Detect risky or isolated zones if present in the data.\n5. Keep the route practical and human-readable.\n\nAlways prioritize:\n- crowded roads\n- main roads\n- well-lit areas\n- nearby hospitals\n- nearby police stations\n\nAvoid:\n- isolated roads\n- unsafe shortcuts\n- poorly lit areas\n- risky zones\n\nReturn output in EXACTLY this format:\n\n📍 Source: <source>\n\n🏁 Destination: <destination>\n\n🛣 Recommended Route:\n\n1. <location/road>\n2. <location/road>\n3. <location/road>\n\n🚨 Risk Level:\n<Low / Medium / High>\n\n⚠ Risky Zones:\n\n- <zone name>\n- <zone name>\n\n🏥 Nearby Hospitals:\n\n- <hospital name> — <short address> — <phone>\n- <hospital name> — <short address> — <phone>\n\n👮 Nearby Police Stations:\n\n- <police station>\n- <police station>\n\n🛡 Safety Advice:\n<short practical advice>\n\nKeep the response:\n- concise\n- structured\n- Telegram-friendly\n- easy to read\n\nUse the provided Apify data dynamically in the response.\n\n{{ JSON.stringify($input.all().map(item => item.json), null, 2) }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1504,
+        864
+      ],
+      "id": "d3b7ac46-32ca-46f4-9dac-53f322fd8639",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1472,
+        1088
+      ],
+      "id": "741bbb1b-c30f-432c-8a2f-bb60adca500b",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "M3P1Q9TYFMt2scne",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Work with your data in Pinecone Vector Store",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "rag",
+          "mode": "list",
+          "cachedResultName": "rag"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        1600,
+        1088
+      ],
+      "id": "e9d224c4-69a1-4b7e-973a-53239381e888",
+      "name": "Pinecone Vector Store1",
+      "credentials": {
+        "pineconeApi": {
+          "id": "BCR4ZCoj9P6MdLtr",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        1296
+      ],
+      "id": "caac953e-ec23-430d-8d5a-d4ebaaceff43",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "M3P1Q9TYFMt2scne",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "=2055662601",
+        "text": "={{ $json.final_output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1968,
+        864
+      ],
+      "id": "a4e286bc-374a-46cc-b220-63e1d418047d",
+      "name": "Send a text message2",
+      "webhookId": "c6c6080c-8a04-43e6-bd5f-a569a86121e6",
+      "credentials": {
+        "telegramApi": {
+          "id": "yc2W5xhHwPN3qyVu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "=2055662601",
+        "text": "PLEASE GIVE YOUR LIVE LOCATION FOR REAL TIME AI COMAPANION",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2192,
+        864
+      ],
+      "id": "e6244cb9-3bed-4f47-afeb-880cf6edd1fe",
+      "name": "Send a text message3",
+      "webhookId": "c6c6080c-8a04-43e6-bd5f-a569a86121e6",
+      "credentials": {
+        "telegramApi": {
+          "id": "yc2W5xhHwPN3qyVu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "call",
+        "from": "(754) 289-3093",
+        "to": "+91 7488971265",
+        "message": "Are you safe ?",
+        "options": {
+          "statusCallback": "https://hacksatya.app.n8n.cloud/webhook/twilio-status"
+        }
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        2864,
+        464
+      ],
+      "id": "3feb30f5-d23a-46fa-a3f4-c16a77b929b9",
+      "name": "Make a call",
+      "credentials": {
+        "twilioApi": {
+          "id": "Kmrf9AeRyeqj5ibY",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://nominatim.openstreetmap.org/reverse",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "format",
+              "value": "jsonv2"
+            },
+            {
+              "name": "lat",
+              "value": "={{ $('Telegram Trigger').item.json.message.location.latitude }}"
+            },
+            {
+              "name": "lon",
+              "value": "={{ $('Telegram Trigger').item.json.message.location.longitude }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2640,
+        464
+      ],
+      "id": "2eb5a101-df99-41c8-afdf-30c215d33e2d",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "resource": "call",
+        "from": "(754) 289-3093",
+        "to": "+91 7488971265",
+        "message": "=You daughter is not recieving the call,she might be in danger.please check her last location was  {{ $('HTTP Request1').item.json.display_name }}",
+        "options": {
+          "statusCallback": ""
+        }
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        3312,
+        464
+      ],
+      "id": "8dbcf174-20e1-46fa-8a01-030ea3c43edd",
+      "name": "Make a call1",
+      "credentials": {
+        "twilioApi": {
+          "id": "Kmrf9AeRyeqj5ibY",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 20
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3088,
+        464
+      ],
+      "id": "1eef4318-ff64-44ae-bcd5-aeb83f5b6a7b",
+      "name": "Wait1",
+      "webhookId": "1e5e6a3c-5258-4376-8047-14f431eba45c"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.message.text || \"\";\n\nconst match = text.match(/from\\s+(.*?)\\s+to\\s+(.*)/i);\n\nreturn [\n  {\n    json: {\n      source: match ? match[1].trim() : \"\",\n      destination: match ? match[2].trim() : \"\"\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        864
+      ],
+      "id": "37d11d14-7ae2-420b-aabc-caa0580685ec",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "operation": "Run actor and get dataset",
+        "actorId": {
+          "__rl": true,
+          "value": "nwua9Gu5YrADL7ZDj",
+          "mode": "list",
+          "cachedResultName": "Google Maps Scraper (compass/crawler-google-places)",
+          "cachedResultUrl": "https://console.apify.com/actors/nwua9Gu5YrADL7ZDj/input"
+        },
+        "customBody": "={\n  \"includeWebResults\": false,\n  \"language\": \"en\",\n  \"locationQuery\": \"{{ $json.source }},Kolkata\",\n  \"maxCrawledPlacesPerSearch\": 5,\n  \"maximumLeadsEnrichmentRecords\": 0,\n  \"scrapeContacts\": false,\n  \"scrapeDirectories\": false,\n  \"scrapeImageAuthors\": false,\n  \"scrapePlaceDetailPage\": false,\n  \"scrapeReviewsPersonalData\": true,\n  \"scrapeSocialMediaProfiles\": {\n    \"facebooks\": false,\n    \"instagrams\": false,\n    \"tiktoks\": false,\n    \"twitters\": false,\n    \"youtubes\": false\n  },\n  \"scrapeTableReservationProvider\": false,\n  \"searchStringsArray\": [\n    \"hospitals\"\n  ],\n  \"skipClosedPlaces\": false,\n  \"verifyLeadsEnrichmentEmails\": false,\n  \"searchMatching\": \"all\",\n  \"placeMinimumStars\": \"\",\n  \"website\": \"allPlaces\",\n  \"maxQuestions\": 0,\n  \"maxReviews\": 0,\n  \"reviewsSort\": \"newest\",\n  \"reviewsFilterString\": \"\",\n  \"reviewsOrigin\": \"all\",\n  \"maxImages\": 0,\n  \"allPlacesNoSearchAction\": \"\"\n} ",
+        "authentication": "apifyOAuth2Api"
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        864
+      ],
+      "id": "b4123900-3656-4c3a-aebe-ff0f746e28c2",
+      "name": "Run an Actor and get dataset",
+      "credentials": {
+        "apifyOAuth2Api": {
+          "id": "bVsjxbzGVDheH2oa",
+          "name": "Apify OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  return {\n    json: {\n      hospital_name: item.json.title || \"\",\n      phone: item.json.phone || \"\",\n      short_address: item.json.neighborhood || \"\"\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        864
+      ],
+      "id": "aef1efaf-f0e0-47c9-a2d6-7b68cbc94c5e",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      final_output: items[0].json.output\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1856,
+        864
+      ],
+      "id": "0af03f9e-972a-4176-b138-b4363630aa38",
+      "name": "Code in JavaScript3"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message2": {
+      "main": [
+        [
+          {
+            "node": "Send a text message3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Make a call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make a call": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Make a call1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Run an Actor and get dataset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run an Actor and get dataset": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Send a text message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "21a251b2-9327-48ee-9dd8-c084272cddb4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7cca5af00ddce4ef0453c59f169828fcf0a83089c8b520b2dcf9e432b66d1cee"
+  },
+  "id": "eIfYbvapcNAKE7aT",
+  "tags": []
+}

@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SafeRoute AI — Hackolution</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --red: #E24B4A; --red-bg: rgba(226,75,74,0.10); --red-border: rgba(226,75,74,0.2);
+  --amber: #EF9F27; --amber-bg: rgba(239,159,39,0.10); --amber-border: rgba(239,159,39,0.2);
+  --green: #639922; --green-bg: rgba(99,153,34,0.10); --green-border: rgba(99,153,34,0.2);
+  --teal: #1D9E75;
+  --font: 'DM Sans', sans-serif;
+  --mono: 'Space Mono', monospace;
+}
+
+body {
+  background: #0a0a0a;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 32px 16px;
+  font-family: var(--font);
+}
+
+.phone {
+  width: 375px;
+  min-height: 812px;
+  background: #121212;
+  border-radius: 44px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 0 1px #2a2a2a, 0 32px 80px rgba(0,0,0,0.6);
+}
+
+/* ── Status Bar ── */
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 24px 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #aaa;
+  letter-spacing: 0.04em;
+}
+.status-bar .icons { display: flex; gap: 5px; align-items: center; }
+.status-bar .icons i { font-size: 13px; color: #aaa; }
+
+/* ── Nav ── */
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 12px;
+}
+.nav-title { font-size: 13px; color: #888; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; }
+.nav-icon {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 0.5px solid #2a2a2a;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; background: #1a1a1a;
+}
+.nav-icon i { font-size: 17px; color: #aaa; }
+
+/* ── Tabs ── */
+.tabs { display: flex; padding: 0 20px 16px; gap: 8px; }
+.tab {
+  flex: 1; padding: 8px 4px;
+  border-radius: 10px;
+  border: 0.5px solid #2a2a2a;
+  font-family: var(--font); font-size: 12px; font-weight: 500;
+  cursor: pointer; color: #666; background: transparent;
+  transition: all 0.18s;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.tab.active { background: #1e1e1e; border-color: #444; color: #f0f0f0; }
+.tab i { font-size: 15px; }
+
+/* ── Scrollable content ── */
+.content {
+  padding: 0 20px 100px;
+  max-height: calc(812px - 160px);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.content::-webkit-scrollbar { display: none; }
+
+/* ── Panels ── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Location Card ── */
+.location-card {
+  background: #1a1a1a;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 20px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.loc-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.loc-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #1D9E75; flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(29,158,117,0.2);
+}
+.loc-text { font-size: 13px; color: #bbb; }
+.loc-name { font-size: 15px; font-weight: 500; color: #e0e0e0; margin-bottom: 4px; }
+.loc-coords { font-family: var(--mono); font-size: 11px; color: #555; letter-spacing: 0.04em; margin-bottom: 12px; }
+.loc-send-btn {
+  width: 100%; padding: 12px;
+  border-radius: 12px; border: none; cursor: pointer;
+  background: #1D9E75; color: white;
+  font-family: var(--font); font-weight: 500; font-size: 14px;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: opacity 0.15s;
+}
+.loc-send-btn:hover { opacity: 0.88; }
+.loc-send-btn i { font-size: 16px; }
+
+/* ── Risk Card ── */
+.risk-card {
+  border-radius: 20px; padding: 20px; margin-bottom: 16px;
+  border: 0.5px solid transparent; transition: all 0.4s;
+}
+.risk-card.high  { background: var(--red-bg);   border-color: var(--red-border); }
+.risk-card.medium{ background: var(--amber-bg);  border-color: var(--amber-border); }
+.risk-card.low   { background: var(--green-bg);  border-color: var(--green-border); }
+.risk-card.pending{ background: #1a1a1a; border-color: #2a2a2a; }
+
+.risk-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.risk-label { font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: #666; }
+.risk-badge {
+  padding: 5px 12px; border-radius: 8px;
+  font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 0.05em;
+}
+.risk-badge.high    { background: rgba(226,75,74,0.15);  color: #E24B4A; }
+.risk-badge.medium  { background: rgba(239,159,39,0.15); color: #EF9F27; }
+.risk-badge.low     { background: rgba(99,153,34,0.15);  color: #639922; }
+.risk-badge.pending { background: #252525; color: #555; }
+
+.risk-score-row { display: flex; align-items: flex-end; gap: 6px; margin-bottom: 14px; }
+.risk-score { font-size: 42px; font-weight: 300; font-family: var(--mono); line-height: 1; }
+.risk-score.high    { color: #E24B4A; }
+.risk-score.medium  { color: #EF9F27; }
+.risk-score.low     { color: #639922; }
+.risk-score.pending { color: #333; }
+.risk-unit { font-size: 13px; color: #555; padding-bottom: 8px; }
+
+.risk-bar-bg { height: 5px; background: #222; border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
+.risk-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.risk-bar-fill.high    { width: 88%; background: #E24B4A; }
+.risk-bar-fill.medium  { width: 52%; background: #EF9F27; }
+.risk-bar-fill.low     { width: 20%; background: #639922; }
+.risk-bar-fill.pending { width: 0%;  background: #444; }
+
+.risk-desc { font-size: 13px; color: #777; line-height: 1.5; }
+
+/* ── Section Label ── */
+.section-label {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.1em;
+  text-transform: uppercase; color: #444;
+  margin-bottom: 10px; margin-top: 20px;
+}
+
+/* ── Incident Row ── */
+.incident-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  border: 0.5px solid #232323;
+  margin-bottom: 8px;
+}
+.inc-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.inc-icon i { font-size: 16px; }
+.inc-icon.theft   { background: rgba(239,159,39,0.12); } .inc-icon.theft i   { color: #EF9F27; }
+.inc-icon.harass  { background: rgba(226,75,74,0.12);  } .inc-icon.harass i  { color: #E24B4A; }
+.inc-icon.road    { background: rgba(29,158,117,0.12); } .inc-icon.road i    { color: #1D9E75; }
+.inc-icon.police  { background: rgba(99,153,34,0.12);  } .inc-icon.police i  { color: #7bc142; }
+.inc-icon.hosp    { background: rgba(53,107,173,0.12); } .inc-icon.hosp i    { color: #5b9cf6; }
+.inc-icon.women   { background: rgba(239,159,39,0.12); } .inc-icon.women i   { color: #EF9F27; }
+.inc-info { flex: 1; }
+.inc-title { font-size: 13px; font-weight: 500; color: #ccc; margin-bottom: 2px; }
+.inc-meta  { font-size: 11px; color: #555; }
+.inc-dist  { font-family: var(--mono); font-size: 11px; color: #444; }
+
+/* ── Alert Card ── */
+.alert-card {
+  background: rgba(226,75,74,0.08);
+  border: 0.5px solid rgba(226,75,74,0.25);
+  border-radius: 16px; padding: 16px; margin-bottom: 16px;
+}
+.alert-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.alert-icon  { color: #E24B4A; font-size: 18px; }
+.alert-title { font-size: 14px; font-weight: 500; color: #E24B4A; }
+.alert-body  { font-size: 13px; color: #888; line-height: 1.5; margin-bottom: 14px; }
+.alert-timer { font-family: var(--mono); font-size: 28px; color: #E24B4A; margin-bottom: 14px; font-weight: 700; letter-spacing: 0.04em; }
+.alert-btns  { display: flex; gap: 8px; }
+.btn-safe {
+  flex: 1; padding: 11px; border-radius: 10px; border: none; cursor: pointer;
+  background: #639922; color: white; font-family: var(--font); font-weight: 500; font-size: 13px;
+}
+.btn-sos  {
+  flex: 1; padding: 11px; border-radius: 10px; border: none; cursor: pointer;
+  background: #E24B4A; color: white; font-family: var(--font); font-weight: 500; font-size: 13px;
+}
+
+/* ── Call Button ── */
+.call-btn {
+  background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 8px;
+  padding: 7px 12px; font-family: var(--font); font-size: 12px; cursor: pointer; font-weight: 500;
+}
+
+/* ── Route Panel ── */
+.route-card {
+  background: #1a1a1a; border: 0.5px solid #2a2a2a;
+  border-radius: 20px; padding: 16px; margin-bottom: 16px;
+}
+.route-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.route-dot-from { width: 10px; height: 10px; border-radius: 50%; background: #1D9E75; flex-shrink: 0; }
+.route-dot-to   { width: 10px; height: 10px; border-radius: 50%; background: #E24B4A; flex-shrink: 0; }
+.route-line { width: 1px; height: 20px; background: #2a2a2a; margin: 2px 0 2px 4.5px; }
+.route-input {
+  flex: 1; background: #252525; border: 0.5px solid #333; border-radius: 8px;
+  padding: 9px 12px; font-family: var(--font); font-size: 13px; color: #ccc; outline: none;
+}
+.route-input::placeholder { color: #444; }
+.route-input:focus { border-color: #555; }
+.route-btn {
+  width: 100%; padding: 12px; border-radius: 12px; border: none; cursor: pointer;
+  background: #1D9E75; color: white;
+  font-family: var(--font); font-weight: 500; font-size: 14px;
+  margin-top: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: opacity 0.15s;
+}
+.route-btn:hover { opacity: 0.88; }
+.route-btn i { font-size: 16px; }
+
+.route-result { margin-top: 4px; }
+.route-step { display: flex; align-items: flex-start; gap: 10px; padding-bottom: 14px; position: relative; }
+.route-step:not(:last-child)::after {
+  content: ''; position: absolute; left: 5px; top: 16px;
+  width: 1px; height: calc(100% - 8px); background: #2a2a2a;
+}
+.route-step-dot { width: 12px; height: 12px; border-radius: 50%; background: #1D9E75; flex-shrink: 0; margin-top: 2px; }
+.route-step:last-child .route-step-dot { background: #E24B4A; }
+.route-step-text { font-size: 13px; color: #aaa; line-height: 1.4; }
+.route-step-sub  { font-size: 11px; color: #555; margin-top: 2px; }
+
+.info-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 8px;
+  font-size: 11px; font-weight: 500;
+  margin-right: 6px; margin-bottom: 6px;
+}
+.chip-hosp   { background: rgba(53,107,173,0.15); color: #5b9cf6; }
+.chip-police { background: rgba(99,153,34,0.12);  color: #7bc142; }
+.chip-warn   { background: rgba(239,159,39,0.12); color: #EF9F27; }
+
+.advice-box {
+  padding: 14px; background: #1a1a1a;
+  border: 0.5px solid #2a2a2a; border-radius: 14px; margin-top: 8px;
+}
+.advice-box .adv-label { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 7px; }
+.advice-box .adv-text  { font-size: 13px; color: #888; line-height: 1.6; }
+
+/* ── Bottom Nav ── */
+.bottom-nav {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: #111; border-top: 0.5px solid #1e1e1e;
+  display: flex; padding: 10px 0 24px;
+}
+.bnav-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  cursor: pointer; opacity: 0.4; transition: opacity 0.15s;
+}
+.bnav-item.active { opacity: 1; }
+.bnav-item i { font-size: 22px; color: #ccc; }
+.bnav-item.active i { color: #1D9E75; }
+.bnav-label { font-size: 10px; color: #888; font-weight: 500; letter-spacing: 0.04em; }
+.bnav-item.active .bnav-label { color: #1D9E75; }
+
+/* ── Animations ── */
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+.pulse-dot { animation: pulse 1.5s ease-in-out infinite; }
+</style>
+</head>
+<body>
+
+<div class="phone">
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span>09:41</span>
+    <span style="font-size:12px;color:#666;font-family:var(--font);">SafeRoute AI</span>
+    <div class="icons">
+      <i class="ti ti-wifi"></i>
+      <i class="ti ti-battery-2"></i>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <div class="nav">
+    <span class="nav-title">Hackolution</span>
+    <div class="nav-icon"><i class="ti ti-bell"></i></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" id="tab-check" onclick="switchTab('check')">
+      <i class="ti ti-shield-check"></i> Area Check
+    </button>
+    <button class="tab" id="tab-route" onclick="switchTab('route')">
+      <i class="ti ti-route"></i> Route
+    </button>
+    <button class="tab" id="tab-alert" onclick="switchTab('alert')">
+      <i class="ti ti-alert-triangle"></i> Alert
+    </button>
+  </div>
+
+  <!-- ══ PANEL: Area Check ══ -->
+  <div class="content panel active" id="panel-check">
+
+    <div class="location-card">
+      <div class="loc-row">
+        <div class="loc-dot pulse-dot"></div>
+        <span class="loc-text">Live GPS · Kolkata</span>
+      </div>
+      <div class="loc-name">Esplanade, Kolkata</div>
+      <div class="loc-coords">22.5726° N, 88.3639° E · updated 2m ago</div>
+      <button class="loc-send-btn" onclick="runScan()">
+        <i class="ti ti-scan"></i>
+        Analyse Area Safety
+      </button>
+    </div>
+
+    <div class="risk-card high" id="risk-card">
+      <div class="risk-header">
+        <span class="risk-label">Risk Assessment</span>
+        <span class="risk-badge high" id="risk-badge">HIGH</span>
+      </div>
+      <div class="risk-score-row">
+        <span class="risk-score high" id="risk-score">88</span>
+        <span class="risk-unit">/ 100</span>
+      </div>
+      <div class="risk-bar-bg">
+        <div class="risk-bar-fill high" id="risk-bar"></div>
+      </div>
+      <div class="risk-desc" id="risk-desc">
+        Repeated robbery and harassment incidents detected within 1.2 km. High activity after 21:00. Avoid isolated stretches near the Maidan.
+      </div>
+    </div>
+
+    <div class="section-label">Nearby incidents · 2 km radius</div>
+
+    <div class="incident-row">
+      <div class="inc-icon theft"><i class="ti ti-wallet"></i></div>
+      <div class="inc-info">
+        <div class="inc-title">Chain snatching</div>
+        <div class="inc-meta">Jawaharlal Nehru Rd · 3 hrs ago</div>
+      </div>
+      <span class="inc-dist">0.4 km</span>
+    </div>
+
+    <div class="incident-row">
+      <div class="inc-icon harass"><i class="ti ti-user-exclamation"></i></div>
+      <div class="inc-info">
+        <div class="inc-title">Harassment reported</div>
+        <div class="inc-meta">Park Street · Yesterday 22:40</div>
+      </div>
+      <span class="inc-dist">0.9 km</span>
+    </div>
+
+    <div class="incident-row">
+      <div class="inc-icon road"><i class="ti ti-road-off"></i></div>
+      <div class="inc-info">
+        <div class="inc-title">Unsafe road condition</div>
+        <div class="inc-meta">Chowringhee Ln · 2 days ago</div>
+      </div>
+      <span class="inc-dist">1.3 km</span>
+    </div>
+
+  </div>
+
+  <!-- ══ PANEL: Safe Route ══ -->
+  <div class="content panel" id="panel-route">
+
+    <div class="route-card">
+      <div class="route-input-row">
+        <div class="route-dot-from"></div>
+        <input class="route-input" id="from-input" placeholder="From: your location" value="Esplanade, Kolkata" />
+      </div>
+      <div class="route-line"></div>
+      <div class="route-input-row">
+        <div class="route-dot-to"></div>
+        <input class="route-input" id="to-input" placeholder="To: destination" />
+      </div>
+      <button class="route-btn" onclick="planRoute()">
+        <i class="ti ti-map-2"></i>
+        Find Safest Route
+      </button>
+    </div>
+
+    <div id="route-result-section" style="display:none;">
+      <div class="section-label">Recommended path</div>
+      <div class="route-result">
+        <div class="route-step">
+          <div class="route-step-dot"></div>
+          <div>
+            <div class="route-step-text">Start: Esplanade</div>
+            <div class="route-step-sub">Via Chowringhee Road (well-lit, high traffic)</div>
+          </div>
+        </div>
+        <div class="route-step">
+          <div class="route-step-dot"></div>
+          <div>
+            <div class="route-step-text">Continue along AJC Bose Road</div>
+            <div class="route-step-sub">Avoid Elgin Road shortcut (isolated)</div>
+          </div>
+        </div>
+        <div class="route-step">
+          <div class="route-step-dot"></div>
+          <div>
+            <div class="route-step-text">Pass through Gariahat crossing</div>
+            <div class="route-step-sub">Police checkpost active till 00:00</div>
+          </div>
+        </div>
+        <div class="route-step">
+          <div class="route-step-dot"></div>
+          <div>
+            <div class="route-step-text">Arrive: <span id="dest-display">Destination</span></div>
+            <div class="route-step-sub">Estimated 18 min · Low risk corridor</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:8px;">
+        <span class="info-chip chip-hosp"><i class="ti ti-building-hospital"></i> SSKM Hospital 1.1km</span>
+        <span class="info-chip chip-police"><i class="ti ti-building"></i> Park St PS 0.8km</span>
+        <span class="info-chip chip-warn"><i class="ti ti-alert-triangle"></i> Avoid Maidan after 21:00</span>
+      </div>
+
+      <div class="advice-box">
+        <div class="adv-label">Safety advice</div>
+        <div class="adv-text">Stay on main roads, keep your phone visible to scan QR checkpoints, and share your live location with a trusted contact before travelling.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ PANEL: Alert ══ -->
+  <div class="content panel" id="panel-alert">
+
+    <div class="alert-card">
+      <div class="alert-header">
+        <i class="ti ti-alert-triangle alert-icon"></i>
+        <span class="alert-title">High Risk Area Detected</span>
+      </div>
+      <div class="alert-body">
+        You are in a zone with repeated violent activity. Reply within 5 minutes to confirm your safety, or an emergency SOS will be triggered automatically.
+      </div>
+      <div class="alert-timer" id="countdown">04:58</div>
+      <div class="alert-btns">
+        <button class="btn-safe" onclick="markSafe()">I'm Safe</button>
+        <button class="btn-sos"  onclick="triggerSOS()">SOS</button>
+      </div>
+    </div>
+
+    <div class="section-label">Emergency contacts</div>
+
+    <div class="incident-row" style="margin-bottom:8px;">
+      <div class="inc-icon police"><i class="ti ti-phone"></i></div>
+      <div class="inc-info">
+        <div class="inc-title">Kolkata Police</div>
+        <div class="inc-meta">100 · Available 24/7</div>
+      </div>
+      <button class="call-btn" style="color:#7bc142;" onclick="alert('Calling 100…')">Call</button>
+    </div>
+
+    <div class="incident-row" style="margin-bottom:8px;">
+      <div class="inc-icon hosp"><i class="ti ti-building-hospital"></i></div>
+      <div class="inc-info">
+        <div class="inc-title">SSKM Emergency</div>
+        <div class="inc-meta">033-2223-0000 · 1.1 km away</div>
+      </div>
+      <button class="call-btn" style="color:#5b9cf6;" onclick="alert('Calling SSKM…')">Call</button>
+    </div>
+
+    <div class="incident-row">
+      <div class="inc-icon women"><i class="ti ti-user-shield"></i></div>
+      <div class="inc-info">
+        <div class="inc-title">Women's Helpline</div>
+        <div class="inc-meta">1091 · Kolkata Women's Commission</div>
+      </div>
+      <button class="call-btn" style="color:#EF9F27;" onclick="alert('Calling 1091…')">Call</button>
+    </div>
+
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <div class="bnav-item active" id="bnav-check" onclick="switchTab('check')">
+      <i class="ti ti-shield-check"></i>
+      <span class="bnav-label">Check</span>
+    </div>
+    <div class="bnav-item" id="bnav-route" onclick="switchTab('route')">
+      <i class="ti ti-route"></i>
+      <span class="bnav-label">Route</span>
+    </div>
+    <div class="bnav-item" id="bnav-alert" onclick="switchTab('alert')">
+      <i class="ti ti-alert-triangle"></i>
+      <span class="bnav-label">Alert</span>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+
+<script>
+const TABS = ['check', 'route', 'alert'];
+
+function switchTab(t) {
+  TABS.forEach(id => {
+    document.getElementById('panel-' + id).classList.remove('active');
+    document.getElementById('tab-' + id).classList.remove('active');
+    document.getElementById('bnav-' + id).classList.remove('active');
+  });
+  document.getElementById('panel-' + t).classList.add('active');
+  document.getElementById('tab-' + t).classList.add('active');
+  document.getElementById('bnav-' + t).classList.add('active');
+}
+
+function runScan() {
+  const card  = document.getElementById('risk-card');
+  const badge = document.getElementById('risk-badge');
+  const score = document.getElementById('risk-score');
+  const bar   = document.getElementById('risk-bar');
+  const desc  = document.getElementById('risk-desc');
+
+  // Reset to pending
+  card.className  = 'risk-card pending';
+  badge.className = 'risk-badge pending'; badge.textContent = 'SCANNING';
+  score.className = 'risk-score pending'; score.textContent = '--';
+  bar.className   = 'risk-bar-fill pending';
+  desc.textContent = 'Querying Pinecone vector store and analysing recent incidents via Gemini…';
+
+  // Simulate AI response after 2.2s
+  setTimeout(() => {
+    card.className  = 'risk-card high';
+    badge.className = 'risk-badge high'; badge.textContent = 'HIGH';
+    score.className = 'risk-score high'; score.textContent = '88';
+    bar.className   = 'risk-bar-fill high';
+    desc.textContent = 'Repeated robbery and harassment incidents detected within 1.2 km. High activity after 21:00. Avoid isolated stretches near the Maidan.';
+  }, 2200);
+}
+
+function planRoute() {
+  const dest = document.getElementById('to-input').value.trim();
+  if (!dest) { document.getElementById('to-input').focus(); return; }
+  document.getElementById('dest-display').textContent = dest;
+  document.getElementById('route-result-section').style.display = 'block';
+}
+
+// Countdown timer for alert panel
+let timerVal = 298;
+const timerInt = setInterval(() => {
+  if (timerVal <= 0) { clearInterval(timerInt); return; }
+  timerVal--;
+  const m = Math.floor(timerVal / 60);
+  const s = timerVal % 60;
+  const el = document.getElementById('countdown');
+  if (el) el.textContent = '0' + m + ':' + (s < 10 ? '0' + s : s);
+}, 1000);
+
+function markSafe() {
+  clearInterval(timerInt);
+  const cd = document.getElementById('countdown');
+  if (cd) { cd.textContent = 'CONFIRMED SAFE'; cd.style.color = '#639922'; cd.style.fontSize = '20px'; }
+}
+
+function triggerSOS() {
+  clearInterval(timerInt);
+  const cd = document.getElementById('countdown');
+  if (cd) { cd.textContent = 'SOS TRIGGERED'; cd.style.color = '#E24B4A'; cd.style.fontSize = '20px'; }
+}
+</script>
+</body>
+</html>
